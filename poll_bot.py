@@ -1,3 +1,5 @@
+#Code used from https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/pollbot.py
+
 import logging
 import datetime
 from MeetingClass import KoordinationsMeeting 
