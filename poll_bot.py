@@ -2,7 +2,9 @@
 
 import logging
 import datetime
+import pickle
 from MeetingClass import KoordinationsMeeting 
+
 
 from telegram import (
     Poll,
@@ -204,13 +206,33 @@ def sleep_until(date):
         time.sleep(8*86400/2)
         if diff <= 0.1: return
 
+def read_token(file):
+    '''Reads the token from file and returns it'''
+    with open(file) as tf:
+        token = tf.read()
+    return token
+
+def save_meeting(file, meeting):
+    '''Saves meeting to file for later use'''
+    with open(file,'wb') as mf:
+        pickle.dump(meeting, mf)
+
+def wait_until(end_date):
+    while True:
+        diff = (end_date - date.today())
+        if diff < timedelta(days=0): 
+            return 1
+        elif diff == timedelta(days=1):
+            return 0
+        else:
+            sleep(60*60*12)
 
 def main() -> None:
     """Run bot."""
+    token = read_token("token.txt")
     # Create the Updater and pass it your bot's token.
-    #TODO:Write function to ready Handle from file
-
     updater = Updater(token)
+
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler('start', start))
     dispatcher.add_handler(CommandHandler('koord', koord))
@@ -222,10 +244,11 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler('help', help_handler))
 
     # Start the Bot
-    meeting = KoordinationsMeeting()
     # get next meeting date
-    # sleep
-    #send reminder
+    next_meeting = KoordinationsMeeting()
+    save_meeting('meetings.p')
+    date_was_in_the_past = wait_until(next_meeting.reminder_date)
+    #send_reminder
     ##start poll
     ##polling
     ##stop poll
@@ -239,29 +262,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
-
-    #answer_string = ""
-    #for option_id in selected_options:
-    #    if option_id != selected_options[-1]:
-    #        answer_string += options[option_id] + " and "
-    #    else:
-    #        answer_string += options[option_id]
-    # Reply after someone voted.
-    #context.bot.send_message(
-    #    context.bot_data[poll_id]["chat_id"],
-    #    f"{update.effective_user.mention_html()} feels {answer_string}!",
-    #    parse_mode=ParseMode.HTML,
-    #)
-    # Reset count if new poll started
-    # Count poll answers of current poll
-    # Close poll 5 Days before the meeting
-    # Announce meeting with time in the channel
-
-
-
-    # Close poll after three participants voted
-    #if context.bot_data[poll_id]["answers"] == 3:
-    #    context.bot.stop_poll(
-    #        context.bot_data[poll_id]["chat_id"], context.bot_data[poll_id]["message_id"]
-    #    )
