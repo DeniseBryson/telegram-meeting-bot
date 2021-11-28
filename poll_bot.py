@@ -33,13 +33,16 @@ logger = logging.getLogger(__name__)
 def start(update: Update, context: CallbackContext) -> None:
     """Inform user about what this bot can do"""
     update.message.reply_text(
-        'Wenn Sie nächste Woche ein Koordinationstreffen machen wollen, dann drücken Sie bitte /Koord. Wenn nicht dann drücken sie auf /nein'
-        ''
+            ''' With \koordination I can start organising the Koordinationsmeeting in this group.'''
     )
 
-def koord(update: Update, context: CallbackContext, date_of_meeting: date) -> None:
+def koordination(update: Update, context: CallbackContext, date_of_meeting: date) -> None:
     "Startet Pool für die Uhrzeit und sendet Einladung"
-    datum = str(date_of_meeting.day)+"."+str(date_of_meeting.month)+"."+str(date_of_meeting.year)
+
+    next_meeting = KoordinationsMeeting()
+    save_meeting('./meetingobjects/koordinationsmeetings.p')
+    date_was_in_the_past = wait_until(next_meeting.reminder_date)
+    
     message = context.bot.send_poll(
         update.effective_chat.id,
         text,
@@ -235,7 +238,7 @@ def main() -> None:
 
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CommandHandler('koord', koord))
+    dispatcher.add_handler(CommandHandler('koordination', koord))
     dispatcher.add_handler(PollAnswerHandler(receive_poll_answer))
     dispatcher.add_handler(CommandHandler('quiz', quiz))
     dispatcher.add_handler(PollHandler(receive_quiz_answer))
