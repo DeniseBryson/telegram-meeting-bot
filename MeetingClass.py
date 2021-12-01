@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, date
 class MeetingClass(object):
 
     """Calculates and stores all data for the next meeting given a specific date"""
+    def __init__(self, chat_id):
+        self.chat_id = chat_id
 
     def set_dates(self, current_date, weekday, accurance_in_month):
         """Calculates the next meeting and reminder dates """
@@ -36,7 +38,9 @@ class MeetingClass(object):
 class KoordinationsMeeting(MeetingClass):
     '''Das Koordinationsmeeting findet jeden 2. Mittwoch im Monat statt.'''
 
-    def __init__(self):
+    def __init__(self, chat_id):
+        #Sets chat_id and maybe more
+        super(KoordinationsMeeting, self).__init__(chat_id)
         # 2 for Wednesday
         self.weekday = 2
         # 2 for second Wednesday in month
@@ -44,6 +48,21 @@ class KoordinationsMeeting(MeetingClass):
         # Set all the important dates: self.meeting_date and reminder_date
         self.set_dates(date.today(),self.weekday,self.accurance_in_month)
         
-        invitation_text = ["Nächste Woche findet das Koordinationsmeeting "+" "+self.day_name+", den  "+self.meeting_date+" "+"statt, bitte meldet euch kurz ob ihr kommt und welche Uhrzeit euch passt."]
+        self.invitation_text = ["Nächste Woche findet das Koordinationsmeeting "+" "+self.day_name+", den  "+self.meeting_date+" "+"statt, bitte meldet euch kurz ob ihr kommt und welche Uhrzeit euch passt."]
         self.options = ["19 Uhr","21 Uhr", "Ich kann leider nicht"]
 
+class OTing(MeetingClass):
+    '''OTing findet ersten Mittwoch im Monat statt.'''
+
+    def __init__(self, chat_id):
+        #Sets chat_id and maybe more
+        super(OTing, self).__init__(chat_id)
+        # 2 for Wednesday
+        self.weekday = 2
+        # 2 for second Wednesday in month
+        self.accurance_in_month
+        # Set all the important dates: self.meeting_date and reminder_date
+        self.set_dates(date.today(),self.weekday,self.accurance_in_month)
+        
+        self.invitation_text = ["Nächste Woche findet das Koordinationsmeeting "+" "+self.day_name+", den  "+self.meeting_date+" "+"statt, bitte meldet euch kurz ob ihr kommt und welche Uhrzeit euch passt."]
+        self.options = ["19 Uhr","21 Uhr", "Ich kann leider nicht"]
