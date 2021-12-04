@@ -4,6 +4,7 @@ import logging
 import datetime
 import pickle
 from MeetingClass import KoordinationsMeeting 
+from threading import Thread
 
 
 from telegram import (
@@ -39,7 +40,8 @@ def start(update: Update, context: CallbackContext) -> None:
 def koordination(update: Update, context: CallbackContext, date_of_meeting: date) -> None:
     "Startet Pool für die Uhrzeit und sendet Einladung"
 
-    next_meeting = KoordinationsMeeting()
+    # update.effective_chat.id, update.effective_message.id
+    next_meeting = KoordinationsMeeting(update.effective_chat.id)
     save_meeting('./meetingobjects/koordinationsmeetings.p')
     date_was_in_the_past = wait_until(next_meeting.reminder_date)
     
@@ -59,9 +61,8 @@ def koordination(update: Update, context: CallbackContext, date_of_meeting: date
             "chat_id": update.effective_chat.id,
             "total_voter_count": 0,
             #Save the voters for each answer in a list.
-            "voter_by_option": {i:[] for i in options}
+            "voters_by_option": {i:[] for i in options}
         }
-
     }
     context.bot_data.update(payload)
 
@@ -72,6 +73,7 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
     print("\n User: ", user)
     print("\n Answer: ", update.poll_answer)
+    print("Poll Options: " , update.poll.options)
     try:
         options = context.bot_data[poll_id]["options"]
     # this means this poll answer update is from an old poll, we can't do our answering then
@@ -80,13 +82,13 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
 
     #Add user object to the list of its answer to store the result
     # Go over all options
-    for key in context.bot_data[poll_id]["voter_by_option"].keys():
+    for key in context.bot_data[poll_id]["voters_by_option"].keys():
         # Go through all answer of the user, multiple answers a possible
         for option_id in answer.option_ids:
             selected_option = options[option_id]
             if key == selected_option:
-                context.bot_data[poll_id]["voter_by_option"][key].append(user)
-    print("\n Result:", context.bot_data[poll_id]["voter_by_option"])
+                context.bot_data[poll_id]["voters_by_option"][key].append(user)
+    print("\n Result:", context.bot_data[poll_id]["voters_by_option"])
     context.bot_data[poll_id]["total_voter_count"] += 1
 
 def stop_poll(poll_id, context: CallbackContext):
@@ -96,7 +98,7 @@ def stop_poll(poll_id, context: CallbackContext):
     context.bot.stop_poll(
         context.bot_data[poll_id]["chat_id"], context.bot_data[poll_id]["message_id"]
     )
-    votes = [context.bot_data[poll_id]["voter_by_option"][option] for idx, option in enumerate(options)]
+    votes = [context.bot_data[poll_id]["voters_by_option"][option] for idx, option in enumerate(options)]
     if votes[0] >= votes[1]:
         time = options[0]
     else:
@@ -169,7 +171,6 @@ def preview(update: Update, context: CallbackContext) -> None:
         message, reply_markup=ReplyKeyboardMarkup(button, one_time_keyboard=True)
     )
 
-
 def receive_poll(update: Update, context: CallbackContext) -> None:
     """On receiving polls, reply to it by a closed poll copying the received poll"""
     actual_poll = update.effective_message.poll
@@ -182,7 +183,6 @@ def receive_poll(update: Update, context: CallbackContext) -> None:
         is_closed=True,
         reply_markup=ReplyKeyboardRemove(),
     )
-
 
 def help_handler(update: Update, context: CallbackContext) -> None:
     """Display a help message"""
@@ -220,15 +220,6 @@ def save_meeting(file, meeting):
     with open(file,'wb') as mf:
         pickle.dump(meeting, mf)
 
-def wait_until(end_date):
-    while True:
-        diff = (end_date - date.today())
-        if diff < timedelta(days=0): 
-            return 1
-        elif diff == timedelta(days=1):
-            return 0
-        else:
-            sleep(60*60*12)
 
 def main() -> None:
     """Run bot."""
@@ -250,7 +241,6 @@ def main() -> None:
     # get next meeting date
     next_meeting = KoordinationsMeeting()
     save_meeting('meetings.p')
-    date_was_in_the_past = wait_until(next_meeting.reminder_date)
     #send_reminder
     ##start poll
     ##polling
