@@ -66,6 +66,22 @@ def koordination(update: Update, context: CallbackContext, date_of_meeting: date
     }
     context.bot_data.update(payload)
 
+def change_dates_of_meeting():
+    #TODO
+    pass
+
+def load_running_meetings():
+    #TODO
+    pass
+
+def stop_meeting():
+    #TODO
+    pass
+
+def create_meeting():
+    #TODO
+    pass
+
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     """Summarize a users poll vote"""
     answer = update.poll_answer
