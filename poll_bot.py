@@ -42,28 +42,26 @@ def koordination(update: Update, context: CallbackContext, date_of_meeting: date
 
     # update.effective_chat.id, update.effective_message.id
     next_meeting = KoordinationsMeeting(update.effective_chat.id)
-    save_meeting('./meetingobjects/koordinationsmeetings.p')
-    date_was_in_the_past = wait_until(next_meeting.reminder_date)
-    
-    message = context.bot.send_poll(
-        update.effective_chat.id,
-        text,
-        options,
-        is_anonymous=False,
-        allows_multiple_answers=True,
-    )
+    save_meeting(next_meeting)
+    t = Thread(target=next_meeting.organize, args=(context), daemon = True)
+    t.start()
 
     # Save some info about the poll the bot_data for later use in receive_poll_answer
-    payload = {
-        message.poll.id: {
-            "options": options,
-            "message_id": message.message_id,
-            "chat_id": update.effective_chat.id,
-            "total_voter_count": 0,
-            #Save the voters for each answer in a list.
-            "voters_by_option": {i:[] for i in options}
-        }
-    }
+    payload = {update.effective_chat.id: next_meeting}
+    context.bot_data.update(payload)
+
+
+def othing(update: Update, context: CallbackContext, date_of_meeting: date) -> None:
+    '''Organisiert das Othing in dem er auf die Klasse zurueckgreift'''
+
+    # update.effective_chat.id, update.effective_message.id
+    next_meeting = OThing(update.effective_chat.id)
+    save_meeting(next_meeting)
+    t = Thread(target=next_meeting.organize, args=(context), daemon = True)
+    t.start()
+
+    # Save some info about the poll the bot_data for later use in receive_poll_answer
+    payload = {update.effective_chat.id: next_meeting}
     context.bot_data.update(payload)
 
 def change_dates_of_meeting():
@@ -71,12 +69,13 @@ def change_dates_of_meeting():
     pass
 
 def load_running_meetings():
+    #for meeting in open pickle:
     #TODO
     pass
 
-def stop_meeting():
-    #TODO
-    pass
+def stop_meeting(update: Update, context: CallbackContext):
+    meeting = context.bot_data[update.effective_chat.id]
+    meeting.stop_meeting()
 
 def create_meeting():
     #TODO
@@ -217,25 +216,17 @@ def return_date_of_meeting_next_month(day,first_second_third_in_month):
 
     return d, d-timedelta(days=-7)
 
-def sleep_until(date):
-    while True:
-        diff = (date- date.today()).days)
-        if diff < 0: return       # In case end_datetime was in past to begin with
-        print("Going to sleep for ", diff/2, " days")
-        time.sleep(8*86400/2)
-        if diff <= 0.1: return
-
 def read_token(file):
     '''Reads the token from file and returns it'''
     with open(file) as tf:
         token = tf.read()
     return token
 
-def save_meeting(file, meeting):
+def save_meeting(meeting):
     '''Saves meeting to file for later use'''
+    file = "./meetingobjects/meetings.p"
     with open(file,'wb') as mf:
-        pickle.dump(meeting, mf)
-
+        pickle.dump( meeting, mf)
 
 def main() -> None:
     """Run bot."""
@@ -253,16 +244,6 @@ def main() -> None:
     dispatcher.add_handler(MessageHandler(Filters.poll, receive_poll))
     dispatcher.add_handler(CommandHandler('help', help_handler))
 
-    # Start the Bot
-    # get next meeting date
-    next_meeting = KoordinationsMeeting()
-    save_meeting('meetings.p')
-    #send_reminder
-    ##start poll
-    ##polling
-    ##stop poll
-    ##invitation
-    #reminder on meeting day
     updater.start_polling()
 
     # Run the bot until the user presses Ctrl-C or the process receives SIGINT,

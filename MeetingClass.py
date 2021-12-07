@@ -4,6 +4,9 @@ class MeetingClass(object):
     """Calculates and stores all data for the next meeting given a specific date"""
     def __init__(self, chat_id):
         self.chat_id = chat_id
+        self._running = True
+        # Should there be a poll to determine the time
+        self._poll = False
 
     def set_dates(self, current_date, weekday, occurance_in_month):
         """Calculates the next meeting and reminder dates """
@@ -38,21 +41,27 @@ class MeetingClass(object):
 
     def organize(self, context: CallbackContext):
         '''Waits for the specific dates and send reminder and invitation'''
-    #TODO Make poll possible
-        while True:
 
-            date_was_in_the_past = self.wait_until(self.invitation_date)
-            if not date_was_in_the_past:
-                self.send_message(context, self.invitation_text)
+        while self._running:
+            if _poll:
+                self.organize_with_poll(self, context)
+            else:
+                date_was_in_the_past = self.wait_until(self.invitation_date)
+                if not date_was_in_the_past:
+                    self.send_message(context, self.invitation_text)
+                
+                date_was_in_the_past = self.wait_until(self.meeting_date)
+                if not date_was_in_the_past:
+                    self.send_message(context, self.reminder)
             
-            date_was_in_the_past = self.wait_until(self.meeting_date)
-            if not date_was_in_the_past:
-                self.send_message(context, self.reminder)
-        
-        #Calculate dates for the next meeting
-        self.update_dates()
+                #Calculate dates for the next meeting
+                self.update_dates()
 
-    def organize_poll(self, context: CallbackContext):
+        if not self._running:
+            self.send_message(context, "Meeting was aborted")
+            #TODO delete meeting from pickle file
+
+    def organize_with_poll(self, context: CallbackContext):
         #TODO
         pass
 
@@ -61,7 +70,7 @@ class MeetingClass(object):
         context.bot.send_message(self.chat_id, text)
 
     def wait_until(self, end_date):
-        while True:
+        while self._running:
             diff = (end_date - date.today())
             if diff < timedelta(days=0): 
                 return 1
@@ -69,8 +78,10 @@ class MeetingClass(object):
                 return 0
             else:
                 time.sleep(60*60*12)
+        return 1
 
-    def stop_meetings(self, thread):
+    def stop_meeting(self, thread):
+        self._running = False
         pass
 
     def update_dates(self):
@@ -116,6 +127,7 @@ class KoordinationsMeeting(MeetingClass):
     def __init__(self, chat_id):
         #Sets chat_id and maybe more
         super(KoordinationsMeeting, self).__init__(chat_id)
+        self.name = "koordination"
         # 2 for Wednesday
         self.weekday = 2
         # 2 for second Wednesday in month
@@ -123,9 +135,9 @@ class KoordinationsMeeting(MeetingClass):
         # Set all the important dates: self.meeting_date and invitation_date
         self.set_dates(self.weekday,self.occurance_in_month)
         
-        self.invitation_text = ['Hallo,
+        self.invitation_text = ['''Hallo, 
             Am %s, den %s, findet das  Koordinationstreffen statt.
-            Wir starten um 21 Uhr!
+            Wir starten um %s Uhr!
 
             Wie gehen wieder Einzeln die Teilnehmerinnen durch um zu Erfahren was es neues gibt im Verein und was passiert ist in letzter Zeit. Macht euch im Vorfeld vielleicht Gedanken zu den folgenden Punkten.
             * Was muss in der großen Gruppe besprochen werden.
@@ -135,17 +147,28 @@ class KoordinationsMeeting(MeetingClass):
             Alle Vereinsmitglieder sind herzlich eingeladen!! Falls ihr  etwas vorstellen wollt meldet euch doch bitte bei Lukas damit ich euch einplanen kann!
 
             Hier schon mal das Pad:
-            https://pad2.opensourceecology.de/Koordinationstreffen-2021'%(self.day_name, self.german_date)]
+            https://pad2.opensourceecology.de/Koordinationstreffen-2021'''%(self.day_name, self.time, self.german_date)]
         self.options = ["19 Uhr","21 Uhr", "Ich kann leider nicht"]
 
         self.reminder_text = ["Eine kurze Erinnerung, dass heute das Koordinationsmeeting stattfindet. Wir treffen uns um 21 Uhr hier: https://meet.openculture.agency/r/OSEG-Conference "]
 
-class OTing(MeetingClass):
+    def poll(self):
+        #message = context.bot.send_poll(
+        #    update.effective_chat.id,
+        #    text,
+        #    options,
+        #    is_anonymous=False,
+        #    allows_multiple_answers=True,
+        #)
+        pass
+
+class OThing(MeetingClass):
     '''OTing findet ersten Mittwoch im Monat statt.'''
 
     def __init__(self, chat_id):
         #Sets chat_id and maybe more
         super(OTing, self).__init__(chat_id)
+        self.name = "othing"
         # 2 for Wednesday
         self.weekday = 2
         # 2 for second Wednesday in month
@@ -153,11 +176,11 @@ class OTing(MeetingClass):
         # Set all the important dates: self.meeting_date and invitation_date
         self.set_dates(self.weekday,self.occurance_in_month)
         
-        self.invitation_text = ["Nächste Woche %s, den %s, ist wieder OThing-Zeit für alle die Lust haben! Hier ist der link zum pad:
+        self.invitation_text = ['''Nächste Woche %s, den %s, ist wieder OThing-Zeit für alle die Lust haben! Hier ist der link zum pad:
 https://md.opensourceecology.de/OSEG_Online_Thing_2021
 Um 21 Uhr gehts los!
 
 Hier ist der link zum Raum:
-https://meet.openculture.agency/r/OSEG-Conference"%(self.day_name, self.german_date)]
+https://meet.openculture.agency/r/OSEG-Conference'''%(self.day_name, self.german_date)]
 
         self.reminder_text = ["Eine kurze Erinnerung, dass heute das OThing stattfindet. Wir treffen uns um 21 Uhr hier: https://meet.openculture.agency/r/OSEG-Conference "]
