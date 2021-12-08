@@ -2,3 +2,4 @@ token.txt
 ./meetingobjects/*
 
 __pycache__
+meetingobjects
