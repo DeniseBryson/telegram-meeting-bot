@@ -43,16 +43,12 @@ def koordination(update: Update, context: CallbackContext) -> None:
 
     #Check if meeting exists already
     exists = False
-    print (context.bot_data)
     for meeting in context.bot_data.values():
-        print(meeting)
         if meeting.name == 'koordination' and meeting.chat_id == update.effective_chat.id:
             exists = True
             german_date = meeting.german_date
 
     if exists:
-        #TODO message send not arriving??
-        print('Hello')
         context.bot.send_message\
                 (update.effective_chat.id, "Meeting wird schon organisiert. Nächstes Meeting am %s"%german_date)
     else:
@@ -83,10 +79,15 @@ def change_dates_of_meeting():
     #TODO
     pass
 
-def load_running_meetings():
-    #for meeting in open pickle:
-    #TODO
-    pass
+def load_running_meetings(bot_data: dict):
+    '''Reads in all meeting objects in the file and stores them to bot_data'''
+    with (open("./meetingobjects/meetings.p", "rb")) as openfile:
+        while True:
+            try:
+                meeting = pickle.load(openfile)
+                bot_data.update({meeting.chat_id:meeting})
+            except EOFError:
+                break
 
 def stop_meeting(update: Update, context: CallbackContext):
     meeting = context.bot_data[update.effective_chat.id]
@@ -243,6 +244,13 @@ def save_meeting(meeting):
     with open(file,'wb') as mf:
         pickle.dump( meeting, mf)
 
+def restart_meetings(meetings):
+    '''Loops over meetings in dict and restarts the organize threads'''
+    for meeting in meetings.values():
+        t = Thread(target=meeting.organize, args=(context,), daemon = True)
+        t.start()
+        
+
 def main() -> None:
     """Run bot."""
     token = read_token("token.txt")
@@ -260,7 +268,10 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler('preview', preview))
     dispatcher.add_handler(MessageHandler(Filters.poll, receive_poll))
     dispatcher.add_handler(CommandHandler('help', help_handler))
-
+    
+    dispatcher.bot_data = load_running_meetings()
+    #How to get context object?
+    restart_meetings(dispatcher.bot_data)
     updater.start_polling()
 
     # Run the bot until the user presses Ctrl-C or the process receives SIGINT,
