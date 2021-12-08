@@ -1,4 +1,8 @@
 from datetime import datetime, timedelta, date
+import time
+from telegram.ext import (
+        CallbackContext
+        )
 
 class MeetingClass(object):
     """Calculates and stores all data for the next meeting given a specific date"""
@@ -8,11 +12,14 @@ class MeetingClass(object):
         # Should there be a poll to determine the time
         self._poll = False
 
-    def set_dates(self, current_date, weekday, occurance_in_month):
+    def set_dates(self, weekday, occurance_in_month):
         """Calculates the next meeting and reminder dates """
         # First day of next month
         today = date.today()
-        d = today.replace(day=1,month=today.month +1)
+        if today.month == 12:
+            d = today.replace(day=1,month=1)
+        else:
+            d = today.replace(day=1,month=today.month +1)
         # Get the first specific day of the month
         while d.weekday() != self.weekday:
             d += timedelta(days=1)
@@ -31,19 +38,21 @@ class MeetingClass(object):
         if d_this_month-today >= timedelta(days=0):
             d = d_this_month
 
-        self.meeting_date = d
+        meeting_date = d
         # We want a reminder one week before
-        self.invitation_date = d-timedelta(days=-7)
-        self.german_date = str(d.day)+"."+str(d.month)+"."+str(d.year)
+        invitation_date = d-timedelta(days=-7)
+        german_date = str(d.day)+"."+str(d.month)+"."+str(d.year)
 
         weekDays = ("Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag")
-        self.day_name = weekDays(d.day())
+        day_name = weekDays[d.weekday()]
+
+        return meeting_date, invitation_date, german_date, day_name
 
     def organize(self, context: CallbackContext):
         '''Waits for the specific dates and send reminder and invitation'''
 
         while self._running:
-            if _poll:
+            if self._poll:
                 self.organize_with_poll(self, context)
             else:
                 date_was_in_the_past = self.wait_until(self.invitation_date)
@@ -133,7 +142,12 @@ class KoordinationsMeeting(MeetingClass):
         # 2 for second Wednesday in month
         self.occurance_in_month = 2
         # Set all the important dates: self.meeting_date and invitation_date
-        self.set_dates(self.weekday,self.occurance_in_month)
+        self.meeting_day,\
+        self.invitation_date,\
+        self.german_date,\
+        self.day_name \
+            = self.set_dates(self.weekday, self.occurance_in_month)
+        self.time = "21.00 Uhr"
         
         self.invitation_text = ['''Hallo, 
             Am %s, den %s, findet das  Koordinationstreffen statt.

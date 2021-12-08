@@ -1,10 +1,11 @@
 #Code used from https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/pollbot.py
 
 import logging
-import datetime
+from datetime import datetime, date
 import pickle
 from MeetingClass import KoordinationsMeeting 
 from threading import Thread
+
 
 
 from telegram import (
@@ -37,18 +38,32 @@ def start(update: Update, context: CallbackContext) -> None:
             ''' With \koordination I can start organising the Koordinationsmeeting in this group.'''
     )
 
-def koordination(update: Update, context: CallbackContext, date_of_meeting: date) -> None:
+def koordination(update: Update, context: CallbackContext) -> None:
     "Startet Pool für die Uhrzeit und sendet Einladung"
 
-    # update.effective_chat.id, update.effective_message.id
-    next_meeting = KoordinationsMeeting(update.effective_chat.id)
-    save_meeting(next_meeting)
-    t = Thread(target=next_meeting.organize, args=(context), daemon = True)
-    t.start()
+    #Check if meeting exists already
+    exists = False
+    print (context.bot_data)
+    for meeting in context.bot_data.values():
+        print(meeting)
+        if meeting.name == 'koordination' and meeting.chat_id == update.effective_chat.id:
+            exists = True
+            german_date = meeting.german_date
 
-    # Save some info about the poll the bot_data for later use in receive_poll_answer
-    payload = {update.effective_chat.id: next_meeting}
-    context.bot_data.update(payload)
+    if exists:
+        #TODO message send not arriving??
+        print('Hello')
+        context.bot.send_message\
+                (update.effective_chat.id, "Meeting wird schon organisiert. Nächstes Meeting am %s"%german_date)
+    else:
+        next_meeting = KoordinationsMeeting(update.effective_chat.id)
+        save_meeting(next_meeting)
+        t = Thread(target=next_meeting.organize, args=(context,), daemon = True)
+        t.start()
+
+        # Save some info about the poll the bot_data for later use in receive_poll_answer
+        payload = {update.effective_chat.id: next_meeting}
+        context.bot_data.update(payload)
 
 
 def othing(update: Update, context: CallbackContext, date_of_meeting: date) -> None:
@@ -219,7 +234,7 @@ def return_date_of_meeting_next_month(day,first_second_third_in_month):
 def read_token(file):
     '''Reads the token from file and returns it'''
     with open(file) as tf:
-        token = tf.read()
+        token = tf.read().rstrip()
     return token
 
 def save_meeting(meeting):
@@ -231,12 +246,14 @@ def save_meeting(meeting):
 def main() -> None:
     """Run bot."""
     token = read_token("token.txt")
+    print (type(token))
+    print(token)
     # Create the Updater and pass it your bot's token.
     updater = Updater(token)
 
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CommandHandler('koordination', koord))
+    dispatcher.add_handler(CommandHandler('koordination', koordination))
     dispatcher.add_handler(PollAnswerHandler(receive_poll_answer))
     dispatcher.add_handler(CommandHandler('quiz', quiz))
     dispatcher.add_handler(PollHandler(receive_quiz_answer))
