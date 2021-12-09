@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+import os
 import time
 from telegram.ext import (
         CallbackContext
@@ -6,8 +7,9 @@ from telegram.ext import (
 
 class MeetingClass(object):
     """Calculates and stores all data for the next meeting given a specific date"""
-    def __init__(self, chat_id):
+    def __init__(self, chat_id, bot):
         self.chat_id = chat_id
+        self.bot = bot
         self._running = True
         # Should there be a poll to determine the time
         self._poll = False
@@ -48,35 +50,35 @@ class MeetingClass(object):
 
         return meeting_date, invitation_date, german_date, day_name
 
-    def organize(self, context: CallbackContext):
+    def organize(self):
         '''Waits for the specific dates and send reminder and invitation'''
 
         while self._running:
             if self._poll:
-                self.organize_with_poll(self, context)
+                self.organize_with_poll()
             else:
                 date_was_in_the_past = self.wait_until(self.invitation_date)
                 if not date_was_in_the_past:
-                    self.send_message(context, self.invitation_text)
+                    self.send_message(self.invitation_text)
                 
                 date_was_in_the_past = self.wait_until(self.meeting_date)
                 if not date_was_in_the_past:
-                    self.send_message(context, self.reminder)
+                    self.send_message(self.reminder)
             
                 #Calculate dates for the next meeting
                 self.update_dates()
 
         if not self._running:
             self.send_message(context, "Meeting was aborted")
-            #TODO delete meeting from pickle file
+            self.delete_meeting()
 
-    def organize_with_poll(self, context: CallbackContext):
-        #TODO
+    def organize_with_poll(self):
+        #TODO organize with poll
         pass
 
     def send_message(self, context: CallbackContext, text: str) -> bool:
         '''Sends a message to the Chat of this Meeting'''        
-        context.bot.send_message(self.chat_id, text)
+        self.bot.send_message(self.chat_id, text)
 
     def wait_until(self, end_date):
         while self._running:
@@ -130,12 +132,32 @@ class MeetingClass(object):
         self.occurance_in_month = occurance_in_month
         self.update_dates()
 
+    def delete_meeting(self):
+        '''Reads in all meeting objects and delet the aborted one then save it back'''
+        meetings = []
+        meeting_file = "./meetingobjects/meetings.p"
+        with (open(meeting_file, "rb")) as openfile:
+            while True:
+                try:
+                    meeting = pickle.load(openfile)
+                    if not meeting.name == self.name:
+                        meetings.append(meeting)
+                except EOFError:
+                    break
+
+        os.remove(meeting_file)
+        
+        # Write new meeting file without the deleted meeting
+        for meeting in meetings:
+            with open(meeting_file,'wb') as mf:
+                pickle.dump( meeting, mf)
+
 class KoordinationsMeeting(MeetingClass):
     '''Das Koordinationsmeeting findet jeden 2. Mittwoch im Monat statt.'''
 
-    def __init__(self, chat_id):
+    def __init__(self, chat_id, bot):
         #Sets chat_id and maybe more
-        super(KoordinationsMeeting, self).__init__(chat_id)
+        super(KoordinationsMeeting, self).__init__(chat_id, bot)
         self.name = "koordination"
         # 2 for Wednesday
         self.weekday = 2
