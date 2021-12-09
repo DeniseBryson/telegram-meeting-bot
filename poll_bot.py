@@ -52,9 +52,9 @@ def koordination(update: Update, context: CallbackContext) -> None:
         context.bot.send_message\
                 (update.effective_chat.id, "Meeting wird schon organisiert. Nächstes Meeting am %s"%german_date)
     else:
-        next_meeting = KoordinationsMeeting(update.effective_chat.id)
+        next_meeting = KoordinationsMeeting(update.effective_chat.id, bot)
         save_meeting(next_meeting)
-        t = Thread(target=next_meeting.organize, args=(context,), daemon = True)
+        t = Thread(target=next_meeting.organize, args=(), daemon = True)
         t.start()
 
         # Save some info about the poll the bot_data for later use in receive_poll_answer
@@ -68,7 +68,7 @@ def othing(update: Update, context: CallbackContext, date_of_meeting: date) -> N
     # update.effective_chat.id, update.effective_message.id
     next_meeting = OThing(update.effective_chat.id)
     save_meeting(next_meeting)
-    t = Thread(target=next_meeting.organize, args=(context), daemon = True)
+    t = Thread(target=next_meeting.organize, args=(), daemon = True)
     t.start()
 
     # Save some info about the poll the bot_data for later use in receive_poll_answer
@@ -76,25 +76,28 @@ def othing(update: Update, context: CallbackContext, date_of_meeting: date) -> N
     context.bot_data.update(payload)
 
 def change_dates_of_meeting():
-    #TODO
+    #TODO change_dates_of_meeting
     pass
 
-def load_running_meetings(bot_data: dict):
+def load_running_meetings():
     '''Reads in all meeting objects in the file and stores them to bot_data'''
+    meetings = {}
     with (open("./meetingobjects/meetings.p", "rb")) as openfile:
         while True:
             try:
                 meeting = pickle.load(openfile)
-                bot_data.update({meeting.chat_id:meeting})
+                meetings.update({meeting.chat_id:meeting})
             except EOFError:
                 break
+
+    return meetings
 
 def stop_meeting(update: Update, context: CallbackContext):
     meeting = context.bot_data[update.effective_chat.id]
     meeting.stop_meeting()
 
 def create_meeting():
-    #TODO
+    #TODO create_meeting
     pass
 
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
@@ -145,39 +148,6 @@ def stop_poll(poll_id, context: CallbackContext):
 
     #Delete the poll to avoid confusion
     del context.bot_data[poll_id]
-
-def quiz(update: Update, context: CallbackContext) -> None:
-    """Send a predefined poll"""
-    questions = ["1", "2", "4", "20"]
-    message = update.effective_message.reply_poll(
-        "How many eggs do you need for a cake?", questions, type=Poll.QUIZ, correct_option_id=2
-    )
-    # Save some info about the poll the bot_data for later use in receive_quiz_answer
-    payload = {
-        message.poll.id: {"chat_id": update.effective_chat.id, "message_id": message.message_id}
-    }
-    context.bot_data.update(payload)
-
-def poll_old(update: Update, context: CallbackContext) -> None:
-    """Sends a predefined poll"""
-    questions = ["Good", "Really good", "Fantastic", "Great"]
-    message = context.bot.send_poll(
-        update.effective_chat.id,
-        "How are you?",
-        questions,
-        is_anonymous=False,
-        allows_multiple_answers=True,
-    )
-    # Save some info about the poll the bot_data for later use in receive_poll_answer
-    payload = {
-        message.poll.id: {
-            "questions": questions,
-            "message_id": message.message_id,
-            "chat_id": update.effective_chat.id,
-            "answers": 0,
-        }
-    }
-    context.bot_data.update(payload)
 
 def receive_quiz_answer(update: Update, context: CallbackContext) -> None:
     """Close quiz after three participants took it"""
@@ -247,7 +217,10 @@ def save_meeting(meeting):
 def restart_meetings(meetings):
     '''Loops over meetings in dict and restarts the organize threads'''
     for meeting in meetings.values():
-        t = Thread(target=meeting.organize, args=(context,), daemon = True)
+        meeting.set_dates(meeting.weekday, meeting.occurance_in_month)
+        #TODO bug datum wird nicht richtig gesetzt
+        print(meeting.invitation_date)
+        t = Thread(target=meeting.organize, args=(), daemon = True)
         t.start()
         
 
@@ -263,8 +236,6 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler('start', start))
     dispatcher.add_handler(CommandHandler('koordination', koordination))
     dispatcher.add_handler(PollAnswerHandler(receive_poll_answer))
-    dispatcher.add_handler(CommandHandler('quiz', quiz))
-    dispatcher.add_handler(PollHandler(receive_quiz_answer))
     dispatcher.add_handler(CommandHandler('preview', preview))
     dispatcher.add_handler(MessageHandler(Filters.poll, receive_poll))
     dispatcher.add_handler(CommandHandler('help', help_handler))
