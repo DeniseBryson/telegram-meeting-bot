@@ -50,9 +50,9 @@ def koordination(update: Update, context: CallbackContext) -> None:
 
     if exists:
         context.bot.send_message\
-                (update.effective_chat.id, "Meeting wird schon organisiert. Nächstes Meeting am %s"%german_date)
+                (update.effective_chat.id, "Meeting wird in dieser Gruppe schon organisiert. Nächstes Meeting am %s"%german_date)
     else:
-        next_meeting = KoordinationsMeeting(update.effective_chat.id, bot)
+        next_meeting = KoordinationsMeeting(update.effective_chat.id, context.bot)
         save_meeting(next_meeting)
         t = Thread(target=next_meeting.organize, args=(), daemon = True)
         t.start()
@@ -187,7 +187,7 @@ def receive_poll(update: Update, context: CallbackContext) -> None:
 
 def help_handler(update: Update, context: CallbackContext) -> None:
     """Display a help message"""
-    update.message.reply_text("Use /quiz, /poll or /preview to test this bot.")
+    update.message.reply_text("Benutze /koordination um ein KoordinationsMeeting zu organisieren. /othing um ein Othing zu organisieren und /stop_meeting um das Ganze wieder zu beenden to test this bot.")
 
 def return_date_of_meeting_next_month(day,first_second_third_in_month):
     '''Returns the meeting date and the date of one week before to send the reminder'''
@@ -217,7 +217,8 @@ def save_meeting(meeting):
 def restart_meetings(meetings):
     '''Loops over meetings in dict and restarts the organize threads'''
     for meeting in meetings.values():
-        meeting.set_dates(meeting.weekday, meeting.occurance_in_month)
+        print(meeting)
+        meeting.update_dates()
         #TODO bug datum wird nicht richtig gesetzt
         print(meeting.invitation_date)
         t = Thread(target=meeting.organize, args=(), daemon = True)
@@ -227,8 +228,6 @@ def restart_meetings(meetings):
 def main() -> None:
     """Run bot."""
     token = read_token("token.txt")
-    print (type(token))
-    print(token)
     # Create the Updater and pass it your bot's token.
     updater = Updater(token)
 

@@ -19,7 +19,7 @@ class MeetingClass(object):
         # First day of next month
         today = date.today()
         if today.month == 12:
-            d = today.replace(day=1,month=1)
+            d = today.replace(day=1,month=1, year = date.today().year + 1)
         else:
             d = today.replace(day=1,month=today.month +1)
         # Get the first specific day of the month
@@ -69,14 +69,14 @@ class MeetingClass(object):
                 self.update_dates()
 
         if not self._running:
-            self.send_message(context, "Meeting was aborted")
+            self.send_message("Meeting was aborted")
             self.delete_meeting()
 
     def organize_with_poll(self):
         #TODO organize with poll
         pass
 
-    def send_message(self, context: CallbackContext, text: str) -> bool:
+    def send_message(self, text: str) -> bool:
         '''Sends a message to the Chat of this Meeting'''        
         self.bot.send_message(self.chat_id, text)
 
@@ -84,23 +84,27 @@ class MeetingClass(object):
         while self._running:
             diff = (end_date - date.today())
             if diff < timedelta(days=0): 
-                return 1
-            elif diff == timedelta(days=1):
-                return 0
+                return True
+            elif diff == timedelta(days=0):
+                return False
             else:
-                time.sleep(60*60*12)
-        return 1
+                time.sleep(60*60*6)
+        return True
 
     def stop_meeting(self, thread):
         self._running = False
-        pass
 
     def update_dates(self):
         '''Updates invitation_date and meeting_date for next meeting'''
 
         # First day of next month
         today = date.today()
-        d = today.replace(day=1,month=today.month +1)
+
+        if today.month == 12:
+            d = today.replace(day=1,month=1, year = date.today().year + 1)
+        else:
+            d = today.replace(day=1,month=today.month +1)
+
         # Get the first specific day of the month
         while d.weekday() != self.weekday:
             d += timedelta(days=1)
@@ -125,7 +129,7 @@ class MeetingClass(object):
         self.german_date = str(d.day)+"."+str(d.month)+"."+str(d.year)
 
         weekDays = ("Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag")
-        self.day_name = weekDays(d.day())
+        self.day_name = weekDays[d.weekday()]
 
     def change_dates(self, weekday, occurance_in_month):
         self.weekday = weekday
