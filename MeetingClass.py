@@ -1,15 +1,15 @@
 from datetime import datetime, timedelta, date
 import os
 import time
+from telegram import Bot
 from telegram.ext import (
         CallbackContext
         )
 
 class MeetingClass(object):
     """Calculates and stores all data for the next meeting given a specific date"""
-    def __init__(self, chat_id, bot):
+    def __init__(self, chat_id):
         self.chat_id = chat_id
-        self.bot = bot
         self._running = True
         # Should there be a poll to determine the time
         self._poll = False
@@ -50,7 +50,7 @@ class MeetingClass(object):
 
         return meeting_date, invitation_date, german_date, day_name
 
-    def organize(self):
+    def organize(self, bot):
         '''Waits for the specific dates and send reminder and invitation'''
 
         while self._running:
@@ -59,26 +59,25 @@ class MeetingClass(object):
             else:
                 date_was_in_the_past = self.wait_until(self.invitation_date)
                 if not date_was_in_the_past:
-                    self.send_message(self.invitation_text)
+                    self.send_message(self.invitation_text, bot)
                 
                 date_was_in_the_past = self.wait_until(self.meeting_date)
                 if not date_was_in_the_past:
-                    self.send_message(self.reminder)
+                    self.send_message(self.reminder, bot)
             
                 #Calculate dates for the next meeting
                 self.update_dates()
 
         if not self._running:
-            self.send_message("Meeting was aborted")
-            self.delete_meeting()
+            self.send_message("Meeting was aborted", bot)
 
     def organize_with_poll(self):
         #TODO organize with poll
         pass
 
-    def send_message(self, text: str) -> bool:
+    def send_message(self, text: str, bot: Bot) -> bool:
         '''Sends a message to the Chat of this Meeting'''        
-        self.bot.send_message(self.chat_id, text)
+        bot.send_message(self.chat_id, text)
 
     def wait_until(self, end_date):
         while self._running:
@@ -93,6 +92,7 @@ class MeetingClass(object):
 
     def stop_meeting(self, thread):
         self._running = False
+        self.delete_meeting()
 
     def update_dates(self):
         '''Updates invitation_date and meeting_date for next meeting'''
@@ -159,9 +159,9 @@ class MeetingClass(object):
 class KoordinationsMeeting(MeetingClass):
     '''Das Koordinationsmeeting findet jeden 2. Mittwoch im Monat statt.'''
 
-    def __init__(self, chat_id, bot):
+    def __init__(self, chat_id):
         #Sets chat_id and maybe more
-        super(KoordinationsMeeting, self).__init__(chat_id, bot)
+        super(KoordinationsMeeting, self).__init__(chat_id)
         self.name = "koordination"
         # 2 for Wednesday
         self.weekday = 2
