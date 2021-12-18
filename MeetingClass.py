@@ -208,14 +208,19 @@ class OThing(MeetingClass):
 
     def __init__(self, chat_id):
         #Sets chat_id and maybe more
-        super(OTing, self).__init__(chat_id)
+        super(OThing, self).__init__(chat_id)
         self.name = "othing"
         # 2 for Wednesday
         self.weekday = 2
         # 2 for second Wednesday in month
         self.occurance_in_month = 1
         # Set all the important dates: self.meeting_date and invitation_date
-        self.set_dates(self.weekday,self.occurance_in_month)
+        self.meeting_day,\
+        self.invitation_date,\
+        self.german_date,\
+        self.day_name \
+            = self.set_dates(self.weekday, self.occurance_in_month)
+        self.time = "21.00 Uhr"
         
         self.invitation_text = ['''Nächste Woche %s, den %s, ist wieder OThing-Zeit für alle die Lust haben! Hier ist der link zum pad:
 https://md.opensourceecology.de/OSEG_Online_Thing_2021

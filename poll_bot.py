@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime, date
 import pickle
-from MeetingClass import KoordinationsMeeting 
+from MeetingClass import KoordinationsMeeting, OThing
 from threading import Thread
 
 
@@ -38,22 +38,30 @@ def start(update: Update, context: CallbackContext) -> None:
             ''' With \koordination I can start organising the Koordinationsmeeting in this group.'''
     )
 
-def koordination(update: Update, context: CallbackContext) -> None:
-    "Startet Pool für die Uhrzeit und sendet Einladung"
+def meeting_exists(name: str, chat_id: int, context: CallbackContext):
+    '''Checks if the meeting exists already in this group'''
 
-    #Check if meeting exists already
     exists = False
     for meeting in context.bot_data.values():
-        if meeting.name == 'koordination' and meeting.chat_id == update.effective_chat.id:
+        if meeting.name == name and meeting.chat_id == chat_id:
             exists = True
             german_date = meeting.german_date
 
     if exists:
         context.bot.send_message\
                 (update.effective_chat.id, "Meeting wird in dieser Gruppe schon organisiert. Nächstes Meeting am %s"%german_date)
-    else:
+
+    return exists
+
+
+def koordination(update: Update, context: CallbackContext) -> None:
+    "Startet Pool für die Uhrzeit und sendet Einladung"
+
+    exists = meeting_exists('koordination', update.effective_chat.id, context)
+
+    if not exists:
         #Create Meeting
-        next_meeting = KoordinationsMeeting(update.effective_chat.id)#, context.bot)
+        next_meeting = KoordinationsMeeting(update.effective_chat.id)
         #Save to file
         save_meeting(next_meeting)
         #Start Meeting
@@ -70,18 +78,28 @@ def koordination(update: Update, context: CallbackContext) -> None:
         context.bot_data.update(payload)
 
 
-def othing(update: Update, context: CallbackContext, date_of_meeting: date) -> None:
+def othing(update: Update, context: CallbackContext) -> None:
     '''Organisiert das Othing in dem er auf die Klasse zurueckgreift'''
 
-    # update.effective_chat.id, update.effective_message.id
-    next_meeting = OThing(update.effective_chat.id)
-    save_meeting(next_meeting)
-    t = Thread(target=next_meeting.organize, args=(context.bot,), daemon = True)
-    t.start()
+    exists = meeting_exists('othing', update.effective_chat.id, context)
 
-    # Save some info about the poll the bot_data for later use in receive_poll_answer
-    payload = {update.effective_chat.id: next_meeting}
-    context.bot_data.update(payload)
+    if not exists:
+        #Create Meeting
+        next_meeting = OThing(update.effective_chat.id)
+        #Save to file
+        save_meeting(next_meeting)
+        #Start Meeting
+        t = Thread(target=next_meeting.organize, args=(context.bot,), daemon = True)
+        t.start()
+        #Message Channel that Meeting is started
+        german_date = next_meeting.german_date
+        context.bot.send_message\
+                (update.effective_chat.id, "Meeting wird in dieser Gruppe jetzt organisiert. Nächstes Meeting am %s"%german_date)
+
+
+        # Save some info about the poll the bot_data for later use in receive_poll_answer
+        payload = {update.effective_chat.id: next_meeting}
+        context.bot_data.update(payload)
 
 def change_dates_of_meeting():
     #TODO change_dates_of_meeting
@@ -256,6 +274,7 @@ def main() -> None:
     dispatcher.add_handler(MessageHandler(Filters.poll, receive_poll))
     dispatcher.add_handler(CommandHandler('help', help_handler))
     dispatcher.add_handler(CommandHandler('stop', stop_meeting))
+    dispatcher.add_handler(CommandHandler('othing',othing))
     
     dispatcher.bot_data = load_running_meetings()
     #How to get context object?
