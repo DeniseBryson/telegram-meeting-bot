@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+import pickle
 import os
 import time
 from telegram import Bot
@@ -90,7 +91,7 @@ class MeetingClass(object):
                 time.sleep(60*60*6)
         return True
 
-    def stop_meeting(self, thread):
+    def stop_meeting(self):
         self._running = False
         self.delete_meeting()
 

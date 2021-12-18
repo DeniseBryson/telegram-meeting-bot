@@ -204,7 +204,7 @@ def receive_poll(update: Update, context: CallbackContext) -> None:
 
 def help_handler(update: Update, context: CallbackContext) -> None:
     """Display a help message"""
-    update.message.reply_text("Benutze /koordination um ein KoordinationsMeeting zu organisieren. /othing um ein Othing zu organisieren und /stop_meeting um das Ganze wieder zu beenden to test this bot.")
+    update.message.reply_text("Benutze /koordination um ein KoordinationsMeeting zu organisieren. /othing um ein Othing zu organisieren und /stop um das Ganze wieder zu beenden to test this bot.")
 
 def return_date_of_meeting_next_month(day,first_second_third_in_month):
     '''Returns the meeting date and the date of one week before to send the reminder'''
@@ -255,6 +255,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler('preview', preview))
     dispatcher.add_handler(MessageHandler(Filters.poll, receive_poll))
     dispatcher.add_handler(CommandHandler('help', help_handler))
+    dispatcher.add_handler(CommandHandler('stop', stop_meeting))
     
     dispatcher.bot_data = load_running_meetings()
     #How to get context object?
