@@ -57,7 +57,7 @@ def koordination(update: Update, context: CallbackContext) -> None:
         #Save to file
         save_meeting(next_meeting)
         #Start Meeting
-        t = Thread(target=next_meeting.organize, args=(context.bot), daemon = True)
+        t = Thread(target=next_meeting.organize, args=(context.bot,), daemon = True)
         t.start()
         #Message Channel that Meeting is started
         german_date = next_meeting.german_date
@@ -76,7 +76,7 @@ def othing(update: Update, context: CallbackContext, date_of_meeting: date) -> N
     # update.effective_chat.id, update.effective_message.id
     next_meeting = OThing(update.effective_chat.id)
     save_meeting(next_meeting)
-    t = Thread(target=next_meeting.organize, args=(context.bot), daemon = True)
+    t = Thread(target=next_meeting.organize, args=(context.bot,), daemon = True)
     t.start()
 
     # Save some info about the poll the bot_data for later use in receive_poll_answer
@@ -234,12 +234,12 @@ def save_meeting(meeting):
 def restart_meetings(meetings, bot):
     '''Loops over meetings in dict and restarts the organize threads'''
     for meeting in meetings.values():
-        print(meeting)
         meeting.update_dates()
         #TODO bug datum wird nicht richtig gesetzt
         print(meeting.invitation_date)
-        t = Thread(target=meeting.organize, args=(bot), daemon = True)
+        t = Thread(target=meeting.organize, args=(bot,), daemon = True)
         t.start()
+        print('After Thread started')
         
 
 def main() -> None:
