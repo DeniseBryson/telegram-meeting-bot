@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta, date
-import pickle
-import os
-import time
 from telegram import Bot
 from telegram.ext import (
         CallbackContext
         )
+
+import local, pickle, os, time
+locale.setlocale(locale.LC_TIME, locale.normalize("de"))
 
 class MeetingClass(object):
     """Calculates and stores all data for the next meeting given a specific date"""
@@ -44,7 +44,7 @@ class MeetingClass(object):
         meeting_date = d
         # We want a reminder one week before
         invitation_date = d-timedelta(days=-7)
-        german_date = str(d.day)+"."+str(d.month)+"."+str(d.year)
+        german_date = d.strftime("%d.%m.%Y")
 
         weekDays = ("Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag")
         day_name = weekDays[d.weekday()]
