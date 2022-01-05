@@ -4,8 +4,7 @@ from telegram.ext import (
         CallbackContext
         )
 
-import local, pickle, os, time
-locale.setlocale(locale.LC_TIME, locale.normalize("de"))
+import pickle, os, time
 
 class MeetingClass(object):
     """Calculates and stores all data for the next meeting given a specific date"""
